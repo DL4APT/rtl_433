@@ -12,6 +12,15 @@
  * For the WH1080 part I mostly have re-elaborated and merged their works. Credits (and kudos) should go to them all
  * (and to many others too).
  *
+ * Reports 1 row, 88 pulses
+ * Format: ff ID ?X XX YY ZZ ?? ?? ?? UU CC
+ * - ID: device id
+ * - ?X XX: temperature, likely in 0.1C steps (.1 e7 == 8.7C, .1 ef == 9.5C)
+ * - YY: percent in a single byte (for example 54 == 84%)
+ * - ZZ: wind speed (00 == 0, 01 == 1.1km/s, ...)
+ * - UU: wind direction: 00 is N, 02 is NE, 04 is E, etc. up to 0F is seems
+ * - CC: checksum
+ *
  *****************************************
  * WH1080
  *****************************************
@@ -88,7 +97,6 @@
  *
  *
  */
-
 
 #include "data.h"
 #include "rtl_433.h"
@@ -260,10 +268,6 @@ static int fineoffset_wh1080_callback(bitbuffer_t *bitbuffer) {
     if (bitbuffer->num_rows != 1) {
         return 0;
     }
-    if ((bitbuffer->bits_per_row[0] != 88) && (bitbuffer->bits_per_row[0] != 87) &&
-    (bitbuffer->bits_per_row[0] != 64) && (bitbuffer->bits_per_row[0] != 63)){
-        return 0;
-    }
 
     if(bitbuffer->bits_per_row[0] == 88) { // FineOffset WH1080/3080 Weather data msg
 	sens_msg = 12;
@@ -286,6 +290,8 @@ static int fineoffset_wh1080_callback(bitbuffer_t *bitbuffer) {
         (uint8_t *) & bbuf +1, 7*8);
         br = bbuf;
         bbuf[0] = 0xFF;
+    } else {
+        return 0;
     }
 
     if (debug_output) {

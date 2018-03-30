@@ -23,7 +23,9 @@ add_executable(rtl_433
 	pulse_demod.c
 	pulse_detect.c
 	rtl_433.c
+	optparse.c
 	util.c
+	devices/flex.c
 	devices/acurite.c
 	devices/alecto.c
 	devices/ambient_weather.c
@@ -109,12 +111,14 @@ add_executable(rtl_433
 	devices/philips.c
 	devices/nexa.c
 	devices/thermopro_tp12.c
+	devices/x10_sec.c
+	devices/interlogix.c
 )
 
 add_library(data data.c)
 
 target_link_libraries(rtl_433
-	${LIBRTLSDR_LIBRARIES}
+	${SDR_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -123,6 +127,9 @@ set(INSTALL_TARGETS rtl_433)
 if(UNIX)
 target_link_libraries(rtl_433 m)
 endif()
+
+# Explicitly say that we want C99
+set_property(TARGET rtl_433 PROPERTY C_STANDARD 99)
 
 ########################################################################
 # Install built library files & utilities

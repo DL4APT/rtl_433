@@ -11,7 +11,6 @@
 #include "util.h"
 #include "pulse_demod.h"
 
-
 /*
  * Fine Offset Electronics WH2 Temperature/Humidity sensor protocol
  * aka Agimex Rosenborg 66796 (sold in Denmark)
@@ -40,6 +39,7 @@ static int fineoffset_WH2_callback(bitbuffer_t *bitbuffer) {
     char time_str[LOCAL_TIME_BUFLEN];
 
     char *model;
+    int type;
     uint8_t id;
     int16_t temp;
     float temperature;
@@ -66,6 +66,15 @@ static int fineoffset_WH2_callback(bitbuffer_t *bitbuffer) {
     // Validate package
     if (b[4] != crc8(&b[0], 4, 0x31, 0)) // x8 + x5 + x4 + 1 (x8 is implicit)
         return 0;
+
+    // Nibble 2 contains type, must be 0x04 -- or is this a (battery) flag maybe? please report.
+    type = b[0] >> 4;
+    if (type != 4) {
+        if (debug_output) {
+            fprintf(stderr, "%s: Unknown type: %d\n", model, type);
+        }
+        return 0;
+    }
 
     // Nibble 3,4 contains id
     id = ((b[0]&0x0F) << 4) | ((b[1]&0xF0) >> 4);
@@ -96,6 +105,7 @@ static int fineoffset_WH2_callback(bitbuffer_t *bitbuffer) {
                          "model",         "",            DATA_STRING, model,
                          "id",            "ID",          DATA_INT, id,
                          "temperature_C", "Temperature", DATA_FORMAT, "%.01f C", DATA_DOUBLE, temperature,
+                         "mic",           "Integrity",   DATA_STRING, "CRC",
                           NULL);
         data_acquired_handler(data);
     }
@@ -106,6 +116,7 @@ static int fineoffset_WH2_callback(bitbuffer_t *bitbuffer) {
                          "id",            "ID",          DATA_INT, id,
                          "temperature_C", "Temperature", DATA_FORMAT, "%.01f C", DATA_DOUBLE, temperature,
                          "humidity",      "Humidity",    DATA_FORMAT, "%u %%", DATA_INT, humidity,
+                         "mic",           "Integrity",   DATA_STRING, "CRC",
                           NULL);
         data_acquired_handler(data);
     }
@@ -192,6 +203,7 @@ static int fineoffset_WH25_callback(bitbuffer_t *bitbuffer) {
                      "temperature_C", "Temperature", DATA_FORMAT, "%.01f C", DATA_DOUBLE, temperature,
                      "humidity",      "Humidity",    DATA_FORMAT, "%u %%", DATA_INT, humidity,
                      "pressure_hPa",  "Pressure",    DATA_FORMAT, "%.01f hPa", DATA_DOUBLE, pressure,
+                     "mic",           "Integrity",   DATA_STRING, "CHECKSUM",
                       NULL);
     data_acquired_handler(data);
 
@@ -263,6 +275,7 @@ static int fineoffset_WH0530_callback(bitbuffer_t *bitbuffer) {
                      "id",            "ID",          DATA_INT, id,
                      "temperature_C", "Temperature", DATA_FORMAT, "%.01f C", DATA_DOUBLE, temperature,
                      "rain",          "Rain",        DATA_FORMAT, "%.01f mm", DATA_DOUBLE, rain,
+                     "mic",           "Integrity",   DATA_STRING, "CRC",
                      NULL);
     data_acquired_handler(data);
 
@@ -276,6 +289,7 @@ static char *output_fields[] = {
     "id",
     "temperature_C",
     "humidity",
+    "mic",
     NULL
 };
 
@@ -287,7 +301,7 @@ static char *output_fields_WH25[] = {
     "temperature_C",
     "humidity",
     "pressure_hPa",
-//    "raw",
+    "mic",
     NULL
 };
 
@@ -298,6 +312,7 @@ static char *output_fields_WH0530[] = {
     "id",
     "temperature_C",
     "rain",
+    "mic",
     NULL
 };
 
@@ -328,19 +343,16 @@ r_device fineoffset_WH25 = {
 };
 
 
-PWM_Precise_Parameters pwm_precise_parameters_fo_wh0530 = {
-    .pulse_tolerance    = 160, // us
-    .pulse_sync_width   = 0,    // No sync bit used
-};
-
 r_device fineoffset_WH0530 = {
     .name           = "Fine Offset Electronics, WH0530 Temperature/Rain Sensor",
     .modulation     = OOK_PULSE_PWM_PRECISE,
     .short_limit    = 504,	// Short pulse 504µs
     .long_limit     = 1480, // Long pulse 1480µs
     .reset_limit    = 1200,	// Fixed gap 960µs (We just want 1 package)
+    .sync_width     = 0,    // No sync bit used
+    .tolerance      = 160, // us
     .json_callback  = &fineoffset_WH0530_callback,
     .disabled       = 0,
-    .demod_arg      = (uintptr_t)&pwm_precise_parameters_fo_wh0530,
+    .demod_arg      = 0,
     .fields         = output_fields_WH0530
 };

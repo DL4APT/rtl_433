@@ -9,7 +9,9 @@ rtl_433_SOURCES      = baseband.c \
                        pulse_demod.c \
                        pulse_detect.c \
                        rtl_433.c \
+                       optparse.c \
                        util.c \
+                       devices/flex.c \
                        devices/acurite.c \
                        devices/alecto.c \
                        devices/ambient_weather.c \
@@ -44,7 +46,7 @@ rtl_433_SOURCES      = baseband.c \
                        devices/lacrosse.c \
                        devices/lacrosse_TX141TH_Bv2.c \
                        devices/lacrossews.c \
-		       devices/lacrosse_tx35.c \
+		               devices/lacrosse_tx35.c \
                        devices/lightwave_rf.c \
                        devices/mebus.c \
                        devices/newkaku.c \
@@ -94,6 +96,8 @@ rtl_433_SOURCES      = baseband.c \
                        devices/fordremote.c \
                        devices/philips.c \
                        devices/nexa.c \
-                       devices/thermopro_tp12.c
+                       devices/thermopro_tp12.c \
+                       devices/x10_sec.c \
+                       devices/interlogix.c
 
 rtl_433_LDADD        = $(LIBRTLSDR) $(LIBM)
